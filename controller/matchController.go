@@ -5,13 +5,12 @@ import (
 	"net/http"
 	"time"
 
-	"api-telemetria-robo/controller/common"
 	"api-telemetria-robo/dto"
 	"api-telemetria-robo/logs"
 	"api-telemetria-robo/service"
 )
 
-var pkgName logs.PackageName = "MatchController"
+var pkgName logs.PackageName = "Controller"
 
 type MatchController struct {
 	matchService *service.MatchService
@@ -34,7 +33,7 @@ func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
 
 	if err = json.NewDecoder(r.Body).Decode(&newMatch); err != nil {
 		logs.Errorf(pkgName, "Could not decode JSON: %s", err.Error())
-		common.ServeError(&w, err.Error())
+		serveError(w, err.Error())
 		return
 	}
 
@@ -42,18 +41,18 @@ func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
 	date, err := time.Parse(dateLayout, newMatch.Date)
 	if err != nil {
 		logs.Errorf(pkgName, "Could not parse date: %s", err.Error())
-		common.ServeError(&w, err.Error())
+		serveError(w, err.Error())
 		return
 	}
 
 	err = m.matchService.OpenNewMatch(newMatch.Title, date, newMatch.OpponentName)
 	if err != nil {
 		logs.Errorf(pkgName, "Could not open new match: %s", err.Error())
-		common.ServeError(&w, err.Error())
+		serveError(w, err.Error())
 		return
 	}
 
-	common.ServeJSON(&w, `{"status": "success"}`)
+	serveJSON(w, `{"status": "success"}`)
 }
 
 func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +65,7 @@ func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request
 	curMatch, err = m.matchService.GetCurrentMatch()
 	if err != nil {
 		logs.Errorf(pkgName, "Could not get current match: %s", err.Error())
-		common.ServeError(&w, err.Error())
+		serveError(w, err.Error())
 	}
 
 	match = matchJSON{
@@ -77,5 +76,5 @@ func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request
 		Closed:       curMatch.IsClosed(),
 	}
 
-	common.ServeJSON(&w, match)
+	serveJSON(w, match)
 }
