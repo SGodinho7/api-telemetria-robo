@@ -18,6 +18,6 @@ FROM alpine:latest AS final
 
 COPY --from=builder /main .
 
-EXPOSE 5000
+EXPOSE 8080
 
 CMD ["/main"]

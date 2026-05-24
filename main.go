@@ -8,7 +8,7 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
-	serverAddress := fmt.Sprintf("%s:%s", "127.0.0.1", "5000")
+	serverAddress := fmt.Sprintf("%s:%s", "0.0.0.0", "8080")
 	server := http.Server{
 		Addr:    serverAddress,
 		Handler: mux,
