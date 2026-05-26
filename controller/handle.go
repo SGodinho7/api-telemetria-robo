@@ -6,6 +6,18 @@ import (
 	"net/http"
 )
 
+func serveSuccess(w http.ResponseWriter) {
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(`{"status": "success"}`); err != nil {
+		serveError(w, err.Error())
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf.Bytes())
+}
+
 // ServeJSON serves any struct thought the API as JSON
 func serveJSON(w http.ResponseWriter, v any) {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")

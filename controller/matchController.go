@@ -8,21 +8,30 @@ import (
 	"api-telemetria-robo/dto"
 	"api-telemetria-robo/logs"
 	"api-telemetria-robo/service"
+	"api-telemetria-robo/util"
+
+	"github.com/gorilla/mux"
 )
 
 var pkgName logs.PackageName = "Controller"
 
 type MatchController struct {
 	matchService *service.MatchService
+	roundService *service.RoundService
 }
 
-func NewMatchController(service *service.MatchService) *MatchController {
-	return &MatchController{matchService: service}
+func NewMatchController(matchServ *service.MatchService, roundServ *service.RoundService) *MatchController {
+	return &MatchController{
+		matchService: matchServ,
+		roundService: roundServ,
+	}
 }
 
-func (m *MatchController) LoadRoutes(smux *http.ServeMux) {
-	smux.HandleFunc("POST /post-match", m.postNewMatch)
-	smux.HandleFunc("GET /get-current-match", m.getCurrentMatch)
+func (m *MatchController) LoadRoutes(mux *mux.Router) {
+	mux.HandleFunc("/post-match", m.postNewMatch).Methods("POST")
+	mux.HandleFunc("/get-current-match", m.getCurrentMatch).Methods("GET")
+	mux.HandleFunc("/close-current-match", m.closeCurrentMatch).Methods("POST")
+	mux.HandleFunc("/post-round", m.postRound).Methods("POST")
 }
 
 func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +41,7 @@ func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err = json.NewDecoder(r.Body).Decode(&newMatch); err != nil {
-		logs.Errorf(pkgName, "Could not decode JSON: %s", err.Error())
+		logs.Errorf(pkgName, "Could not decode JSON data: %s", err.Error())
 		serveError(w, err.Error())
 		return
 	}
@@ -52,7 +61,7 @@ func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serveJSON(w, `{"status": "success"}`)
+	serveSuccess(w)
 }
 
 func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request) {
@@ -77,4 +86,44 @@ func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request
 	}
 
 	serveJSON(w, match)
+}
+
+func (m *MatchController) closeCurrentMatch(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	err = m.matchService.CloseCurrentMatch()
+	if err != nil {
+		logs.Errorf(pkgName, "Could not close current match: %s", err.Error())
+		serveError(w, err.Error())
+	}
+
+	serveSuccess(w)
+}
+
+func (m *MatchController) postRound(w http.ResponseWriter, r *http.Request) {
+	var (
+		roundJson RoundJSON
+		err       error
+	)
+
+	if err = json.NewDecoder(r.Body).Decode(&roundJson); err != nil {
+		logs.Errorf(pkgName, "Could not decode JSON data: %s", err.Error())
+		serveError(w, err.Error())
+		return
+	}
+
+	records, err := util.DecodeBase64CSV(roundJson.Sensors)
+	if err != nil {
+		logs.Errorf(pkgName, "Cound not decode Base64 to CSV records: %s", err.Error())
+		serveError(w, err.Error())
+		return
+	}
+
+	if err = m.roundService.SaveNewRoundReadings(records); err != nil {
+		logs.Errorf(pkgName, "Could not save round to the database: %s", err.Error())
+		serveError(w, err.Error())
+		return
+	}
+
+	serveSuccess(w)
 }

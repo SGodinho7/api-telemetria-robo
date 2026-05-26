@@ -11,4 +11,5 @@ type MatchReposiroty interface {
 	GetMatchByID(matchID int) (dto.MatchDTO, error)
 	GetOpenMatch() (dto.MatchDTO, error)
 	CloseMatch(matchID int) error
+	CreateNewRound(sensors []*dto.SensorDTO) error
 }

@@ -5,8 +5,11 @@ import (
 	"time"
 
 	"api-telemetria-robo/dto"
+	"api-telemetria-robo/logs"
 	"api-telemetria-robo/repository"
 )
+
+var pkgName logs.PackageName = "Service"
 
 var (
 	errMatchOpen  = errors.New("a match is currently open")
@@ -18,7 +21,9 @@ type MatchService struct {
 }
 
 func NewMatchService(repo repository.MatchReposiroty) *MatchService {
-	return &MatchService{repo: repo}
+	return &MatchService{
+		repo: repo,
+	}
 }
 
 func (m *MatchService) OpenNewMatch(title string, date time.Time, opponentName string) error {
