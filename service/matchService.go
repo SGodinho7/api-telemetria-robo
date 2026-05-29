@@ -7,13 +7,15 @@ import (
 	"api-telemetria-robo/dto"
 	"api-telemetria-robo/logs"
 	"api-telemetria-robo/repository"
+
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 var pkgName logs.PackageName = "Service"
 
 var (
-	errMatchOpen  = errors.New("a match is currently open")
-	errNoCurMatch = errors.New("no match is currently open")
+	errMatchOpen   = errors.New("a match is currently open")
+	errNoMatchOpen = errors.New("no match is currently open")
 )
 
 type MatchService struct {
@@ -28,15 +30,15 @@ func NewMatchService(repo repository.MatchReposiroty) *MatchService {
 
 func (m *MatchService) OpenNewMatch(title string, date time.Time, opponentName string) error {
 	var (
-		openMatch dto.MatchDTO
+		openMatch *dto.MatchDTO
 		err       error
 	)
 
-	openMatch, err = m.repo.GetOpenMatch()
-	if err != nil {
+	openMatch, err = m.GetCurrentMatch()
+	if err != nil && err != errNoMatchOpen {
 		return err
 	}
-	if openMatch.GetID() != 0 {
+	if openMatch != nil {
 		return errMatchOpen
 	}
 
@@ -48,18 +50,17 @@ func (m *MatchService) OpenNewMatch(title string, date time.Time, opponentName s
 	return nil
 }
 
-func (m *MatchService) GetCurrentMatch() (dto.MatchDTO, error) {
+func (m *MatchService) GetCurrentMatch() (*dto.MatchDTO, error) {
 	var (
-		curMatch dto.MatchDTO
+		curMatch *dto.MatchDTO
 		err      error
 	)
 
 	curMatch, err = m.repo.GetOpenMatch()
-	if err != nil {
-		return dto.MatchDTO{}, err
-	}
-	if curMatch.GetID() == 0 {
-		return dto.MatchDTO{}, errNoCurMatch
+	if err == mongo.ErrNoDocuments {
+		return nil, errNoMatchOpen
+	} else if err != nil {
+		return nil, err
 	}
 
 	return curMatch, nil
@@ -67,16 +68,16 @@ func (m *MatchService) GetCurrentMatch() (dto.MatchDTO, error) {
 
 func (m *MatchService) CloseCurrentMatch() error {
 	var (
-		curMatch dto.MatchDTO
+		curMatch *dto.MatchDTO
 		err      error
 	)
 
-	curMatch, err = m.repo.GetOpenMatch()
+	curMatch, err = m.GetCurrentMatch()
 	if err != nil {
 		return err
 	}
 	if curMatch.GetID() == 0 {
-		return errNoCurMatch
+		return errNoMatchOpen
 	}
 
 	err = m.repo.CloseMatch(curMatch.GetID())

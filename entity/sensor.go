@@ -1,8 +1,16 @@
 package entity
 
 type Reading struct {
-	Timestamp string
-	Value     int
+	timestamp string
+	value     int
+}
+
+func (r *Reading) GetTimestamp() string {
+	return r.timestamp
+}
+
+func (r *Reading) GetValue() int {
+	return r.value
 }
 
 type Sensor struct {
@@ -26,7 +34,7 @@ func (s *Sensor) GetReadings() []Reading {
 
 func (s *Sensor) AppendReading(timestamp string, value int) {
 	s.readings = append(s.readings, Reading{
-		Timestamp: timestamp,
-		Value:     value,
+		timestamp: timestamp,
+		value:     value,
 	})
 }

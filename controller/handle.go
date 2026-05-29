@@ -36,7 +36,7 @@ func serveError(w http.ResponseWriter, errorMessage string) {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 
 	err := struct {
-		Error string
+		Error string `json:"error"`
 	}{
 		Error: errorMessage,
 	}

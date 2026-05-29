@@ -67,7 +67,7 @@ func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
 func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request) {
 	var (
 		match    matchJSON
-		curMatch dto.MatchDTO
+		curMatch *dto.MatchDTO
 		err      error
 	)
 
@@ -95,6 +95,7 @@ func (m *MatchController) closeCurrentMatch(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		logs.Errorf(pkgName, "Could not close current match: %s", err.Error())
 		serveError(w, err.Error())
+		return
 	}
 
 	serveSuccess(w)
@@ -119,8 +120,8 @@ func (m *MatchController) postRound(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = m.roundService.SaveNewRoundReadings(records); err != nil {
-		logs.Errorf(pkgName, "Could not save round to the database: %s", err.Error())
+	if err = m.roundService.SaveRoundRecords(records); err != nil {
+		logs.Errorf(pkgName, "Could not save round: %s", err.Error())
 		serveError(w, err.Error())
 		return
 	}

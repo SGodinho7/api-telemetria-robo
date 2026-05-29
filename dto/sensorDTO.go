@@ -21,3 +21,8 @@ func (s *SensorDTO) GetName() string {
 func (s *SensorDTO) GetReadings() []entity.Reading {
 	return s.readings
 }
+
+func (s *SensorDTO) FromEntity(sensor *entity.Sensor) {
+	s.name = sensor.GetName()
+	s.readings = sensor.GetReadings()
+}

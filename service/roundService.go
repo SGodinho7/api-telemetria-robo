@@ -7,6 +7,8 @@ import (
 	"api-telemetria-robo/entity"
 	"api-telemetria-robo/logs"
 	"api-telemetria-robo/repository"
+
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type RoundService struct {
@@ -17,7 +19,7 @@ func NewRoundService(repo repository.MatchReposiroty) *RoundService {
 	return &RoundService{repo: repo}
 }
 
-func (r *RoundService) SaveNewRoundReadings(records [][]string) error {
+func (r *RoundService) SaveRoundRecords(records [][]string) error {
 	var (
 		sensors    []*entity.Sensor
 		sensorsDTO []*dto.SensorDTO
@@ -30,10 +32,14 @@ func (r *RoundService) SaveNewRoundReadings(records [][]string) error {
 		sensorsDTO = append(sensorsDTO, sensorData)
 	}
 
-	if err = r.repo.CreateNewRound(sensorsDTO); err != nil {
+	err = r.repo.CreateNewRound(sensorsDTO)
+	if err == mongo.ErrNoDocuments {
+		return errNoMatchOpen
+	} else if err != nil {
 		return err
 	}
 
+	logs.Info(pkgName, "Saved new round successfully!")
 	return nil
 }
 
