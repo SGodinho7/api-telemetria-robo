@@ -40,7 +40,7 @@ func (m *MatchDTO) GetOpponentName() string {
 }
 
 func (m *MatchDTO) IsClosed() bool {
-	return !m.closed
+	return m.closed
 }
 
 func (m *MatchDTO) FromEntity(match *entity.Match) {

@@ -13,3 +13,7 @@ type matchCreateJSON struct {
 	Date         string `json:"date"`
 	OpponentName string `json:"opponentName"`
 }
+
+type RoundJSON struct {
+	Sensors string `json:"sensors"`
+}
