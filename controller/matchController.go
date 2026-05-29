@@ -75,6 +75,7 @@ func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		logs.Errorf(pkgName, "Could not get current match: %s", err.Error())
 		serveError(w, err.Error())
+		return
 	}
 
 	match = matchJSON{
