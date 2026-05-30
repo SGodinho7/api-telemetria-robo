@@ -14,8 +14,9 @@ import (
 var pkgName logs.PackageName = "Service"
 
 var (
-	errMatchOpen   = errors.New("a match is currently open")
-	errNoMatchOpen = errors.New("no match is currently open")
+	errMatchOpen       = errors.New("a match is currently open")
+	errNoMatchOpen     = errors.New("no match is currently open")
+	errNegativeMatchID = errors.New("match id cannot be negative")
 )
 
 type MatchService struct {
@@ -50,13 +51,30 @@ func (m *MatchService) OpenNewMatch(title string, date time.Time, opponentName s
 	return nil
 }
 
+func (m *MatchService) GetMatchByID(matchID int) (*dto.MatchDTO, error) {
+	var (
+		match *dto.MatchDTO
+		err   error
+	)
+
+	if matchID < 0 {
+		return nil, errNegativeMatchID
+	}
+
+	if match, err = m.repo.FindMatchByID(matchID); err != nil {
+		return nil, err
+	}
+
+	return match, nil
+}
+
 func (m *MatchService) GetCurrentMatch() (*dto.MatchDTO, error) {
 	var (
 		curMatch *dto.MatchDTO
 		err      error
 	)
 
-	curMatch, err = m.repo.GetOpenMatch()
+	curMatch, err = m.repo.FindOpenMatch()
 	if err == mongo.ErrNoDocuments {
 		return nil, errNoMatchOpen
 	} else if err != nil {

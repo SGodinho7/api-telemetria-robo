@@ -63,7 +63,7 @@ func (m *MatchMongo) CreateMatch(title string, date time.Time, opponentName stri
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	id, err := m.getNextIDCount(ctx)
+	id, err := m.getNextMatchIDCount(ctx)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (m *MatchMongo) CreateMatch(title string, date time.Time, opponentName stri
 	return nil
 }
 
-func (m *MatchMongo) GetMatchByID(matchID int) (*dto.MatchDTO, error) {
+func (m *MatchMongo) FindMatchByID(matchID int) (*dto.MatchDTO, error) {
 	var (
 		collection = m.client.Database(m.db).Collection(m.collection)
 		result     matchBSON
@@ -109,7 +109,7 @@ func (m *MatchMongo) GetMatchByID(matchID int) (*dto.MatchDTO, error) {
 	return match, nil
 }
 
-func (m *MatchMongo) GetOpenMatch() (*dto.MatchDTO, error) {
+func (m *MatchMongo) FindOpenMatch() (*dto.MatchDTO, error) {
 	var (
 		collection = m.client.Database(m.db).Collection(m.collection)
 		result     matchBSON
@@ -120,7 +120,7 @@ func (m *MatchMongo) GetOpenMatch() (*dto.MatchDTO, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	latestMatchID, err := m.getCurrentIDCount(ctx)
+	latestMatchID, err := m.getCurrentMatchIDCount(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func (m *MatchMongo) CreateNewRound(sensors []*dto.SensorDTO) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if openMatch, err = m.GetOpenMatch(); err != nil {
+	if openMatch, err = m.FindOpenMatch(); err != nil {
 		return err
 	}
 
@@ -212,7 +212,7 @@ func (m *MatchMongo) CreateNewRound(sensors []*dto.SensorDTO) error {
 	return nil
 }
 
-func (m *MatchMongo) getCurrentIDCount(ctx context.Context) (int, error) {
+func (m *MatchMongo) getCurrentMatchIDCount(ctx context.Context) (int, error) {
 	filter := bson.M{"_id": m.collection}
 
 	var result struct {
@@ -220,13 +220,14 @@ func (m *MatchMongo) getCurrentIDCount(ctx context.Context) (int, error) {
 		Seq int    `bson:"seq"`
 	}
 	if err := m.client.Database(m.db).Collection("counters").FindOne(ctx, filter).Decode(&result); err != nil {
-		return -1, fmt.Errorf("Count not retrieve current ID count: %s", err.Error())
+		logs.Errorf(pkgName, "Could not get current match id count: %s", err.Error())
+		return -1, err
 	}
 
 	return result.Seq, nil
 }
 
-func (m *MatchMongo) getNextIDCount(ctx context.Context) (int, error) {
+func (m *MatchMongo) getNextMatchIDCount(ctx context.Context) (int, error) {
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After).SetUpsert(true)
 	filter := bson.M{"_id": m.collection}
 	update := bson.M{"$inc": bson.M{"seq": 1}}
@@ -234,7 +235,8 @@ func (m *MatchMongo) getNextIDCount(ctx context.Context) (int, error) {
 	var result struct{ Seq int }
 	err := m.client.Database(m.db).Collection("counters").FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
 	if err != nil {
-		return -1, fmt.Errorf("Could not retrieve new id for match: %s", err.Error())
+		logs.Errorf(pkgName, "Could not get next match id count: %s", err.Error())
+		return -1, err
 	}
 
 	return result.Seq, nil
@@ -248,7 +250,8 @@ func (m *MatchMongo) getNextRoundCount(ctx context.Context) (int, error) {
 	var result struct{ Seq int }
 	err := m.client.Database(m.db).Collection("counters").FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
 	if err != nil {
-		return -1, fmt.Errorf("Could not retrieve number for round: %s", err.Error())
+		logs.Errorf(pkgName, "Could not get next round count: %s", err.Error())
+		return -1, err
 	}
 
 	return result.Seq, nil
@@ -260,7 +263,8 @@ func (m *MatchMongo) resetRoundCount(ctx context.Context) error {
 
 	_, err := m.client.Database(m.db).Collection("counters").UpdateOne(ctx, filter, update)
 	if err != nil {
-		return fmt.Errorf("Could not reset number for round: %s", err.Error())
+		logs.Errorf(pkgName, "Could not reset round count: %s", err.Error())
+		return err
 	}
 
 	return nil
@@ -301,5 +305,5 @@ func (m *MatchMongo) convertMatchBsonToDto(match matchBSON) (*dto.MatchDTO, erro
 	if err != nil {
 		return nil, fmt.Errorf("Could not convert match date string to time: %s", err.Error())
 	}
-	return dto.NewMatchDTO(match.ID, match.Title, date, match.OpponentName), nil
+	return dto.NewMatchDTO(match.ID, match.Title, date, match.OpponentName, match.Closed), nil
 }
