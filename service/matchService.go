@@ -74,7 +74,7 @@ func (m *MatchService) GetCurrentMatch() (*dto.MatchDTO, error) {
 		err      error
 	)
 
-	curMatch, err = m.repo.GetOpenMatch()
+	curMatch, err = m.repo.FindOpenMatch()
 	if err == mongo.ErrNoDocuments {
 		return nil, errNoMatchOpen
 	} else if err != nil {

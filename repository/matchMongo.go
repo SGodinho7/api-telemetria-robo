@@ -109,7 +109,7 @@ func (m *MatchMongo) FindMatchByID(matchID int) (*dto.MatchDTO, error) {
 	return match, nil
 }
 
-func (m *MatchMongo) GetOpenMatch() (*dto.MatchDTO, error) {
+func (m *MatchMongo) FindOpenMatch() (*dto.MatchDTO, error) {
 	var (
 		collection = m.client.Database(m.db).Collection(m.collection)
 		result     matchBSON
@@ -181,7 +181,7 @@ func (m *MatchMongo) CreateNewRound(sensors []*dto.SensorDTO) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if openMatch, err = m.GetOpenMatch(); err != nil {
+	if openMatch, err = m.FindOpenMatch(); err != nil {
 		return err
 	}
 
