@@ -5,6 +5,13 @@ type Reading struct {
 	value     int
 }
 
+func NewReading(timestamp string, value int) Reading {
+	return Reading{
+		timestamp: timestamp,
+		value:     value,
+	}
+}
+
 func (r *Reading) GetTimestamp() string {
 	return r.timestamp
 }
