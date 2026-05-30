@@ -18,8 +18,8 @@ func serveSuccess(w http.ResponseWriter) {
 	w.Write(buf.Bytes())
 }
 
-// ServeJSON serves any struct thought the API as JSON
-func serveJSON(w http.ResponseWriter, v any) {
+// ServeJson serves any struct thought the API as JSON
+func serveJson(w http.ResponseWriter, v any) {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 
 	var buf bytes.Buffer

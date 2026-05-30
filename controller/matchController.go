@@ -38,7 +38,7 @@ func (m *MatchController) LoadRoutes(mux *mux.Router) {
 
 func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
 	var (
-		newMatch matchCreateJSON
+		newMatch matchCreateJson
 		err      error
 	)
 
@@ -69,7 +69,7 @@ func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
 func (m *MatchController) getMatchByID(w http.ResponseWriter, r *http.Request) {
 	var (
 		matchID, _ = strconv.Atoi(mux.Vars(r)["id"])
-		match      matchJSON
+		match      matchJson
 		matchDTO   *dto.MatchDTO
 		err        error
 	)
@@ -80,7 +80,7 @@ func (m *MatchController) getMatchByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	match = matchJSON{
+	match = matchJson{
 		ID:           matchDTO.GetID(),
 		Title:        matchDTO.GetTitle(),
 		Date:         matchDTO.GetDate().Format("2006-01-02"),
@@ -88,12 +88,12 @@ func (m *MatchController) getMatchByID(w http.ResponseWriter, r *http.Request) {
 		Closed:       matchDTO.IsClosed(),
 	}
 
-	serveJSON(w, match)
+	serveJson(w, match)
 }
 
 func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request) {
 	var (
-		match    matchJSON
+		match    matchJson
 		curMatch *dto.MatchDTO
 		err      error
 	)
@@ -105,7 +105,7 @@ func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	match = matchJSON{
+	match = matchJson{
 		ID:           curMatch.GetID(),
 		Title:        curMatch.GetTitle(),
 		Date:         curMatch.GetDate().Format("2006-01-02"),
@@ -113,7 +113,7 @@ func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request
 		Closed:       curMatch.IsClosed(),
 	}
 
-	serveJSON(w, match)
+	serveJson(w, match)
 }
 
 func (m *MatchController) closeCurrentMatch(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +131,7 @@ func (m *MatchController) closeCurrentMatch(w http.ResponseWriter, r *http.Reque
 
 func (m *MatchController) postRound(w http.ResponseWriter, r *http.Request) {
 	var (
-		roundJson RoundJSON
+		roundJson roundCreateJson
 		err       error
 	)
 
