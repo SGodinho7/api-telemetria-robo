@@ -85,7 +85,7 @@ func (m *MatchMongo) CreateMatch(title string, date time.Time, opponentName stri
 	return nil
 }
 
-func (m *MatchMongo) GetMatchByID(matchID int) (*dto.MatchDTO, error) {
+func (m *MatchMongo) FindMatchByID(matchID int) (*dto.MatchDTO, error) {
 	var (
 		collection = m.client.Database(m.db).Collection(m.collection)
 		result     matchBSON
@@ -301,5 +301,5 @@ func (m *MatchMongo) convertMatchBsonToDto(match matchBSON) (*dto.MatchDTO, erro
 	if err != nil {
 		return nil, fmt.Errorf("Could not convert match date string to time: %s", err.Error())
 	}
-	return dto.NewMatchDTO(match.ID, match.Title, date, match.OpponentName), nil
+	return dto.NewMatchDTO(match.ID, match.Title, date, match.OpponentName, match.Closed), nil
 }
