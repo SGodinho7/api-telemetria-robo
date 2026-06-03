@@ -6,7 +6,7 @@ ENV CGO_ENABLED=0 \
 
 WORKDIR /build
 
-COPY go.mod ./
+COPY go.mod go.sum ./
 
 RUN go mod download
 
@@ -18,6 +18,6 @@ FROM alpine:latest AS final
 
 COPY --from=builder /main .
 
-EXPOSE 8080
+EXPOSE 5000
 
 CMD ["/main"]

@@ -20,11 +20,11 @@ import (
 var pkgName logs.PackageName = "MAIN"
 
 func main() {
-	client, err := connectMongoDBClient("mongodb+srv://<username>:<password>@cluster0.jiue3nk.mongodb.net/?appName=Cluster0")
+	client, err := connectMongoDBClient("mongodb+srv://@cluster0.uhow0jo.mongodb.net/sumotrack")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	matchRepository := repository.NewMatchMongo(client, "test", "matches")
+	matchRepository := repository.NewMatchMongo(client, "sumotrack", "matches")
 
 	matchService := service.NewMatchService(matchRepository)
 	roundService := service.NewRoundService(matchRepository)
@@ -34,7 +34,7 @@ func main() {
 	mux := mux.NewRouter()
 	matchController.LoadRoutes(mux)
 
-	serverAddress := fmt.Sprintf("%s:%s", "0.0.0.0", "8080")
+	serverAddress := fmt.Sprintf("%s:%s", "0.0.0.0", "5000")
 	server := http.Server{
 		Addr:    serverAddress,
 		Handler: mux,
