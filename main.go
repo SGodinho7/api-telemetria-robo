@@ -1,18 +1,69 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
+
+	"api-telemetria-robo/controller"
+	"api-telemetria-robo/logs"
+	"api-telemetria-robo/repository"
+	"api-telemetria-robo/service"
+
+	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func main() {
-	mux := http.NewServeMux()
+var pkgName logs.PackageName = "MAIN"
 
-	serverAddress := fmt.Sprintf("%s:%s", "127.0.0.1", "5000")
+func main() {
+	client, err := connectMongoDBClient("mongodb+srv://@cluster0.uhow0jo.mongodb.net/sumotrack")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	matchRepository := repository.NewMatchMongo(client, "sumotrack", "matches")
+
+	matchService := service.NewMatchService(matchRepository)
+	roundService := service.NewRoundService(matchRepository)
+
+	matchController := controller.NewMatchController(matchService, roundService)
+
+	mux := mux.NewRouter()
+	matchController.LoadRoutes(mux)
+
+	serverAddress := fmt.Sprintf("%s:%s", "0.0.0.0", "5000")
 	server := http.Server{
 		Addr:    serverAddress,
 		Handler: mux,
 	}
 
+	logs.Infof(pkgName, "Starting server at %s", serverAddress)
 	server.ListenAndServe()
+}
+
+func connectMongoDBClient(uri string) (*mongo.Client, error) {
+	var (
+		client *mongo.Client
+		err    error
+	)
+
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI)
+
+	client, err = mongo.Connect(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err = client.Ping(ctx, nil); err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }

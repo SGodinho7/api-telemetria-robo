@@ -14,12 +14,13 @@ type MatchDTO struct {
 	closed       bool
 }
 
-func NewMatchDTO(id int, title string, date time.Time, opponentName string) *MatchDTO {
+func NewMatchDTO(id int, title string, date time.Time, opponentName string, closed bool) *MatchDTO {
 	return &MatchDTO{
 		id:           id,
 		title:        title,
 		date:         date,
 		opponentName: opponentName,
+		closed:       closed,
 	}
 }
 
@@ -40,7 +41,7 @@ func (m *MatchDTO) GetOpponentName() string {
 }
 
 func (m *MatchDTO) IsClosed() bool {
-	return !m.closed
+	return m.closed
 }
 
 func (m *MatchDTO) FromEntity(match *entity.Match) {
