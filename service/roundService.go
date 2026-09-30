@@ -65,7 +65,7 @@ func (r *RoundService) convertRecordsToSensors(records [][]string) []*entity.Sen
 				logs.Errorf(pkgName, "Could not convert value string into int: %s", err.Error())
 				continue
 			}
-			sensors[it].AppendReading(timestamp, val)
+			sensors[it].AppendReading(entity.NewReading(timestamp, val))
 		}
 	}
 
