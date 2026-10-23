@@ -23,12 +23,14 @@ type MatchService struct {
 	repo repository.MatchReposiroty
 }
 
+// NewMatchService creates a new MatchService instance and returns its pointer.
 func NewMatchService(repo repository.MatchReposiroty) *MatchService {
 	return &MatchService{
 		repo: repo,
 	}
 }
 
+// OpenNewMatch creates a new match, checks if there isn't an open match in the repository and saves it.
 func (m *MatchService) OpenNewMatch(title string, date time.Time, opponentName string) error {
 	var (
 		openMatch *dto.MatchDTO
@@ -51,6 +53,7 @@ func (m *MatchService) OpenNewMatch(title string, date time.Time, opponentName s
 	return nil
 }
 
+// GetMatchByID retrives a match from the repository, identifing it by its ID.
 func (m *MatchService) GetMatchByID(matchID int) (*dto.MatchDTO, error) {
 	var (
 		match *dto.MatchDTO
@@ -68,6 +71,8 @@ func (m *MatchService) GetMatchByID(matchID int) (*dto.MatchDTO, error) {
 	return match, nil
 }
 
+// GetCurrentMatch retrives the currently open match from the repository.
+// If there's none, it returns an error.
 func (m *MatchService) GetCurrentMatch() (*dto.MatchDTO, error) {
 	var (
 		curMatch *dto.MatchDTO
@@ -84,6 +89,8 @@ func (m *MatchService) GetCurrentMatch() (*dto.MatchDTO, error) {
 	return curMatch, nil
 }
 
+// CLoseCurrentMatch closes the currently open match in the repository.
+// If there's none, it returns an error.
 func (m *MatchService) CloseCurrentMatch() error {
 	var (
 		curMatch *dto.MatchDTO

@@ -15,11 +15,14 @@ type RoundService struct {
 	repo repository.MatchReposiroty
 }
 
+// NewRoundService creates a new RoundService instance and returns its pointer.
 func NewRoundService(repo repository.MatchReposiroty) *RoundService {
 	return &RoundService{repo: repo}
 }
 
-func (r *RoundService) SaveRoundRecords(records [][]string) error {
+// SaveRoundCSVRecords saves round CSV records data,
+// converting the sensor raw data into objects and sending to its repository.
+func (r *RoundService) SaveRoundCSVRecords(records [][]string) error {
 	var (
 		sensors    []*entity.Sensor
 		sensorsDTO []*dto.SensorDTO
@@ -43,6 +46,7 @@ func (r *RoundService) SaveRoundRecords(records [][]string) error {
 	return nil
 }
 
+// convertRecordsToSensors convert CSV sensor readings into Sensor objects array.
 func (r *RoundService) convertRecordsToSensors(records [][]string) []*entity.Sensor {
 	var sensors []*entity.Sensor
 

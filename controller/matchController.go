@@ -148,7 +148,7 @@ func (m *MatchController) postRound(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = m.roundService.SaveRoundRecords(records); err != nil {
+	if err = m.roundService.SaveRoundCSVRecords(records); err != nil {
 		logs.Errorf(pkgName, "Could not save round: %s", err.Error())
 		serveError(w, err.Error())
 		return
