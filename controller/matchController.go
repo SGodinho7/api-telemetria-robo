@@ -30,10 +30,12 @@ func NewMatchController(matchServ *service.MatchService, roundServ *service.Roun
 
 func (m *MatchController) LoadRoutes(mux *mux.Router) {
 	mux.HandleFunc("/post-match", m.postNewMatch).Methods("POST")
-	mux.HandleFunc("/get-match-id/{id:[0-9]+}", m.getMatchByID).Methods("GET")
+	mux.HandleFunc("/get-closed-match-id/{id:[0-9]+}", m.getClosedMatchByID).Methods("GET")
+	mux.HandleFunc("/get-closed-matches", m.getClosedMatches).Methods("GET")
 	mux.HandleFunc("/get-current-match", m.getCurrentMatch).Methods("GET")
 	mux.HandleFunc("/close-current-match", m.closeCurrentMatch).Methods("POST")
 	mux.HandleFunc("/post-round", m.postRound).Methods("POST")
+	mux.HandleFunc("/get-match-round/{id:[0-9]+}/{roundNumber:[0-9]+}", m.getMatchRound).Methods("GET")
 }
 
 func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
@@ -66,29 +68,61 @@ func (m *MatchController) postNewMatch(w http.ResponseWriter, r *http.Request) {
 	serveSuccess(w)
 }
 
-func (m *MatchController) getMatchByID(w http.ResponseWriter, r *http.Request) {
+func (m *MatchController) getClosedMatchByID(w http.ResponseWriter, r *http.Request) {
 	var (
-		matchID, _ = strconv.Atoi(mux.Vars(r)["id"])
-		match      matchJson
-		matchDTO   *dto.MatchDTO
-		err        error
+		matchID, _     = strconv.Atoi(mux.Vars(r)["id"])
+		matchFront     matchClosedJson
+		closedMatchDTO *dto.ClosedMatchDTO
+		err            error
 	)
 
-	if matchDTO, err = m.matchService.GetMatchByID(matchID); err != nil {
-		logs.Errorf(pkgName, "Could not find match with id %d: %s", matchID, err)
+	if closedMatchDTO, err = m.matchService.GetCLosedMatchByID(matchID); err != nil {
+		logs.Errorf(pkgName, "Could not find closed match with id %d: %s", matchID, err)
 		serveError(w, err.Error())
 		return
 	}
 
-	match = matchJson{
-		ID:           matchDTO.GetID(),
-		Title:        matchDTO.GetTitle(),
-		Date:         matchDTO.GetDate().Format("2006-01-02"),
-		OpponentName: matchDTO.GetOpponentName(),
-		Closed:       matchDTO.IsClosed(),
+	matchFront = matchClosedJson{
+		matchJson: matchJson{
+			ID:           closedMatchDTO.GetID(),
+			Title:        closedMatchDTO.GetTitle(),
+			Date:         closedMatchDTO.GetDate().Format("2006-01-02"),
+			OpponentName: closedMatchDTO.GetOpponentName(),
+			Closed:       closedMatchDTO.IsClosed(),
+		},
+		RoundCount: closedMatchDTO.GetRoundCount(),
 	}
 
-	serveJson(w, match)
+	serveJson(w, matchFront)
+}
+
+func (m *MatchController) getClosedMatches(w http.ResponseWriter, r *http.Request) {
+	var (
+		matches          []*dto.ClosedMatchDTO
+		matchesJsonArray []matchClosedJson
+		err              error
+	)
+
+	if matches, err = m.matchService.GetAllClosedMatchesFront(); err != nil {
+		serveError(w, err.Error())
+		return
+	}
+
+	for _, match := range matches {
+		matchFront := matchClosedJson{
+			matchJson: matchJson{
+				ID:           match.GetID(),
+				Title:        match.GetTitle(),
+				Date:         match.GetDate().Format("2006-01-02"),
+				OpponentName: match.GetOpponentName(),
+				Closed:       match.IsClosed(),
+			},
+			RoundCount: match.GetRoundCount(),
+		}
+		matchesJsonArray = append(matchesJsonArray, matchFront)
+	}
+
+	serveJson(w, matchesJsonArray)
 }
 
 func (m *MatchController) getCurrentMatch(w http.ResponseWriter, r *http.Request) {
@@ -155,4 +189,40 @@ func (m *MatchController) postRound(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serveSuccess(w)
+}
+
+func (m *MatchController) getMatchRound(w http.ResponseWriter, r *http.Request) {
+	var (
+		matchID, _     = strconv.Atoi(mux.Vars(r)["id"])
+		roundNumber, _ = strconv.Atoi(mux.Vars(r)["roundNumber"])
+		roundDTO       *dto.RoundDTO
+		roundJSON      roundJson
+		err            error
+		sensors        = []sensorJson{}
+		readings       = []readingJson{}
+	)
+
+	if roundDTO, err = m.matchService.GetMatchRound(matchID, roundNumber); err != nil {
+		logs.Errorf(pkgName, "Could not get round: %s", err.Error())
+		serveError(w, err.Error())
+		return
+	}
+
+	for _, sensor := range roundDTO.GetSensors() {
+		readings = []readingJson{}
+		for _, reading := range sensor.GetReadings() {
+			readings = append(readings, readingJson{
+				Timestamp: reading.GetTimestamp(),
+				Value:     reading.GetValue(),
+			})
+		}
+		sensors = append(sensors, sensorJson{
+			Name:     sensor.GetName(),
+			Readings: readings,
+		})
+	}
+	roundJSON.RoundNumber = roundDTO.GetNumber()
+	roundJSON.Sensors = sensors
+
+	serveJson(w, roundJSON)
 }

@@ -109,6 +109,107 @@ func (m *MatchMongo) FindMatchByID(matchID int) (*dto.MatchDTO, error) {
 	return match, nil
 }
 
+func (m *MatchMongo) FindMatchRound(matchID, roundNumber int) (*dto.RoundDTO, error) {
+	var (
+		collection = m.client.Database(m.db).Collection(m.collection)
+		result     roundBSON
+		round      *dto.RoundDTO
+		sensors    []*dto.SensorDTO
+		readings   []entity.Reading
+		err        error
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pipeline := mongo.Pipeline{
+		{{"$match", bson.M{"_id": matchID}}},
+		{{"$unwind", "$rounds"}},
+		{{"$match", bson.M{"rounds.roundNumber": roundNumber}}},
+		{{"$replaceWith", "$rounds"}},
+		{{"$limit", 1}},
+	}
+
+	cursor, err := collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&result); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, sensor := range result.Sensors {
+		readings = []entity.Reading{}
+		for _, reading := range sensor.Readings {
+			readings = append(readings, entity.NewReading(reading.Timestamp, reading.Value))
+		}
+		sensors = append(sensors, dto.NewSensorDTO(sensor.Name, readings))
+	}
+	round = dto.NewRoundDTO(result.RoundNumber, sensors)
+
+	return round, nil
+}
+
+func (m *MatchMongo) FindMatchRoundCount(matchID int) (int, error) {
+	var (
+		collection = m.client.Database(m.db).Collection(m.collection)
+		result     struct {
+			Rounds []roundBSON `bson:"rounds"`
+		}
+		err error
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{"_id": matchID}
+	opts := options.FindOne().SetProjection(bson.M{"rounds": 1})
+	err = collection.FindOne(ctx, filter, opts).Decode(&result)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(result.Rounds), nil
+}
+
+func (m *MatchMongo) FindAllClosedMatches() ([]*dto.MatchDTO, error) {
+	var (
+		collection = m.client.Database(m.db).Collection(m.collection)
+		result     []matchBSON
+		matches    []*dto.MatchDTO
+		err        error
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{"isClosed": true}
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &result); err != nil {
+		return nil, err
+	}
+
+	for _, match := range result {
+		matchDTO, err := m.convertMatchBsonToDto(match)
+		if err != nil {
+			logs.Errorf(pkgName, "Cound not convert matchBSON ID %v to DTO: %v", match.ID, err.Error())
+			continue
+		}
+		matches = append(matches, matchDTO)
+	}
+
+	return matches, nil
+}
+
 func (m *MatchMongo) FindOpenMatch() (*dto.MatchDTO, error) {
 	var (
 		collection = m.client.Database(m.db).Collection(m.collection)
