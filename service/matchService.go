@@ -14,21 +14,25 @@ import (
 var pkgName logs.PackageName = "Service"
 
 var (
-	errMatchOpen       = errors.New("a match is currently open")
-	errNoMatchOpen     = errors.New("no match is currently open")
-	errNegativeMatchID = errors.New("match id cannot be negative")
+	errMatchOpen           = errors.New("a match is currently open")
+	errNoMatchOpen         = errors.New("no match is currently open")
+	errMatchNotClosed      = errors.New("the match is not closed")
+	errNegativeMatchID     = errors.New("match id cannot be negative")
+	errNegativeRoundNumber = errors.New("round number cannot be negative")
 )
 
 type MatchService struct {
 	repo repository.MatchReposiroty
 }
 
+// NewMatchService creates a new MatchService instance and returns its pointer.
 func NewMatchService(repo repository.MatchReposiroty) *MatchService {
 	return &MatchService{
 		repo: repo,
 	}
 }
 
+// OpenNewMatch creates a new match, checks if there isn't an open match in the repository and saves it.
 func (m *MatchService) OpenNewMatch(title string, date time.Time, opponentName string) error {
 	var (
 		openMatch *dto.MatchDTO
@@ -51,10 +55,12 @@ func (m *MatchService) OpenNewMatch(title string, date time.Time, opponentName s
 	return nil
 }
 
-func (m *MatchService) GetMatchByID(matchID int) (*dto.MatchDTO, error) {
+// GetMatchByID retrives a match from the repository, identifing it by its ID.
+func (m *MatchService) GetCLosedMatchByID(matchID int) (*dto.ClosedMatchDTO, error) {
 	var (
-		match *dto.MatchDTO
-		err   error
+		match       *dto.MatchDTO
+		closedMatch *dto.ClosedMatchDTO
+		err         error
 	)
 
 	if matchID < 0 {
@@ -65,9 +71,80 @@ func (m *MatchService) GetMatchByID(matchID int) (*dto.MatchDTO, error) {
 		return nil, err
 	}
 
-	return match, nil
+	if !match.IsClosed() {
+		return nil, errMatchNotClosed
+	}
+
+	var roundCount int
+	if roundCount, err = m.repo.FindMatchRoundCount(matchID); err != nil {
+		return nil, err
+	}
+
+	closedMatch = dto.NewClosedMatchDTO(
+		match.GetID(),
+		match.GetTitle(),
+		match.GetDate(),
+		match.GetOpponentName(),
+		match.IsClosed(),
+		roundCount,
+	)
+
+	return closedMatch, nil
 }
 
+func (m *MatchService) GetAllClosedMatchesFront() ([]*dto.ClosedMatchDTO, error) {
+	var (
+		matches      []*dto.MatchDTO
+		matchesFront []*dto.ClosedMatchDTO
+		err          error
+	)
+
+	if matches, err = m.repo.FindAllClosedMatches(); err != nil {
+		return nil, err
+	}
+
+	var roundCount int
+	for _, match := range matches {
+		if roundCount, err = m.repo.FindMatchRoundCount(match.GetID()); err != nil {
+			return nil, err
+		}
+
+		matchFront := dto.NewClosedMatchDTO(
+			match.GetID(),
+			match.GetTitle(),
+			match.GetDate(),
+			match.GetOpponentName(),
+			match.IsClosed(),
+			roundCount,
+		)
+		matchesFront = append(matchesFront, matchFront)
+	}
+
+	return matchesFront, nil
+}
+
+func (m *MatchService) GetMatchRound(matchID, roundNumber int) (*dto.RoundDTO, error) {
+	var (
+		round *dto.RoundDTO
+		err   error
+	)
+
+	if matchID < 0 {
+		return nil, errNegativeMatchID
+	}
+	if roundNumber < 0 {
+		return nil, errNegativeRoundNumber
+	}
+
+	if round, err = m.repo.FindMatchRound(matchID, roundNumber); err != nil {
+		return nil, err
+	}
+
+	return round, nil
+}
+
+// GetCurrentMatch retrives the currently open match from the repository.
+// If there's none, it returns an error.
 func (m *MatchService) GetCurrentMatch() (*dto.MatchDTO, error) {
 	var (
 		curMatch *dto.MatchDTO
@@ -84,6 +161,8 @@ func (m *MatchService) GetCurrentMatch() (*dto.MatchDTO, error) {
 	return curMatch, nil
 }
 
+// CLoseCurrentMatch closes the currently open match in the repository.
+// If there's none, it returns an error.
 func (m *MatchService) CloseCurrentMatch() error {
 	var (
 		curMatch *dto.MatchDTO

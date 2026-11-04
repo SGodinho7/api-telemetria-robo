@@ -2,10 +2,10 @@ package dto
 
 type RoundDTO struct {
 	roundNumber int
-	sensors     []SensorDTO
+	sensors     []*SensorDTO
 }
 
-func NewRoundDTO(roundNumber int, sensors []SensorDTO) *RoundDTO {
+func NewRoundDTO(roundNumber int, sensors []*SensorDTO) *RoundDTO {
 	return &RoundDTO{
 		roundNumber: roundNumber,
 		sensors:     sensors,
@@ -16,6 +16,6 @@ func (r *RoundDTO) GetNumber() int {
 	return r.roundNumber
 }
 
-func (r *RoundDTO) GetSensors() []SensorDTO {
+func (r *RoundDTO) GetSensors() []*SensorDTO {
 	return r.sensors
 }
